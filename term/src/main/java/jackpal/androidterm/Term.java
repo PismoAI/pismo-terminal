@@ -540,21 +540,19 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
         boolean setupComplete = linuxEnv.isSetupComplete();
         CrashLogger.log("isSetupComplete = " + setupComplete);
 
-        // STEP 1: Log proot command but still use Android shell
+        // STEP 2: Try to use proot if setup is complete
         if (setupComplete) {
             try {
                 String prootCmd = linuxEnv.getProotCommand();
-                CrashLogger.log("Proot command would be: " + prootCmd);
-                CrashLogger.log("But still using Android shell for now...");
+                Log.i(TermDebug.LOG_TAG, "Using proot: " + prootCmd);
+                session = new ShellTermSession(settings, prootCmd, initialCommand);
             } catch (Throwable t) {
-                CrashLogger.log("ERROR getting proot command:");
-                CrashLogger.logException(t);
+                Log.e(TermDebug.LOG_TAG, "Proot failed, using Android shell", t);
+                session = new ShellTermSession(settings, initialCommand);
             }
+        } else {
+            session = new ShellTermSession(settings, initialCommand);
         }
-
-        CrashLogger.log("Creating ShellTermSession...");
-        session = new ShellTermSession(settings, initialCommand);
-        CrashLogger.log("ShellTermSession created");
 
         // XXX We should really be able to fetch this from within TermSession
         session.setProcessExitMessage(context.getString(R.string.process_exit_message));
