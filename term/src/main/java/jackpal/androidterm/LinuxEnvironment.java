@@ -23,16 +23,31 @@ public class LinuxEnvironment {
         void onComplete(boolean success, String error);
     }
 
+    private final File launcherScript;
+    private final File l2sDir;
+
     public LinuxEnvironment(Context context) {
         this.context = context;
         this.baseDir = new File(context.getFilesDir(), "linux");
         this.rootfsDir = new File(baseDir, "rootfs");
         this.binDir = new File(baseDir, "bin");
         this.prootBinary = new File(binDir, "proot");
+        this.launcherScript = new File(binDir, "launch-proot.sh");
+        this.l2sDir = new File(baseDir, ".proot_l2s");
+    }
+
+    /**
+     * Returns the path to the launcher script that should be used as the shell
+     */
+    public String getLauncherScript() {
+        return launcherScript.getAbsolutePath();
     }
 
     public boolean isSetupComplete() {
-        return new File(baseDir, ".setup_complete").exists() && rootfsDir.exists() && prootBinary.exists();
+        return new File(baseDir, ".setup_complete").exists()
+            && rootfsDir.exists()
+            && prootBinary.exists()
+            && launcherScript.exists();
     }
 
     /**
@@ -59,6 +74,18 @@ public class LinuxEnvironment {
             prootBinary.setExecutable(true, false);
             if (!prootBinary.canExecute()) {
                 return "Proot binary is not executable: " + prootBinary.getAbsolutePath();
+            }
+        }
+
+        // Check for launcher script
+        Log.i(TAG, "Launcher script: " + launcherScript.getAbsolutePath() + " exists=" + launcherScript.exists());
+        if (!launcherScript.exists()) {
+            return "Launcher script does not exist: " + launcherScript.getAbsolutePath();
+        }
+        if (!launcherScript.canExecute()) {
+            launcherScript.setExecutable(true, false);
+            if (!launcherScript.canExecute()) {
+                return "Launcher script is not executable: " + launcherScript.getAbsolutePath();
             }
         }
 
@@ -133,6 +160,8 @@ public class LinuxEnvironment {
             downloadAndExtractAlpine(cb);
             cb.onProgress("Configuring system...", 85);
             configureDns(); createProfile(); copySetupScript();
+            cb.onProgress("Creating launcher...", 90);
+            createLauncherScript();
             cb.onProgress("Finalizing...", 95);
             new File(baseDir, ".setup_complete").createNewFile();
             cb.onProgress("Complete!", 100);
@@ -227,6 +256,52 @@ public class LinuxEnvironment {
             while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
         }
         setupScript.setExecutable(true, false);
+    }
+
+    /**
+     * Creates a launcher script that properly sets up the environment before running proot.
+     * This is critical - proot fails if LD_PRELOAD is set or other environment issues exist.
+     */
+    private void createLauncherScript() throws IOException {
+        // Create the l2s directory for proot's link2symlink feature
+        l2sDir.mkdirs();
+
+        File tmpDir = new File(baseDir, "tmp");
+        tmpDir.mkdirs();
+
+        StringBuilder script = new StringBuilder();
+        script.append("#!/system/bin/sh\n");
+        script.append("# Pismo Terminal - proot launcher script\n");
+        script.append("# This script properly configures the environment before running proot\n\n");
+
+        // Critical: unset LD_PRELOAD - this breaks proot if set
+        script.append("unset LD_PRELOAD\n");
+        script.append("unset LD_LIBRARY_PATH\n\n");
+
+        // Set proot-specific environment variables
+        script.append("export PROOT_L2S_DIR=\"").append(l2sDir.getAbsolutePath()).append("\"\n");
+        script.append("export PROOT_TMP_DIR=\"").append(tmpDir.getAbsolutePath()).append("\"\n");
+        script.append("export PROOT_NO_SECCOMP=1\n\n");
+
+        // Build the proot command
+        script.append("exec \"").append(prootBinary.getAbsolutePath()).append("\" \\\n");
+        script.append("    --link2symlink \\\n");
+        script.append("    -0 \\\n");
+        script.append("    -r \"").append(rootfsDir.getAbsolutePath()).append("\" \\\n");
+        script.append("    -b /dev \\\n");
+        script.append("    -b /proc \\\n");
+        script.append("    -b /sys \\\n");
+        script.append("    -b /sdcard:/sdcard \\\n");
+        script.append("    -b \"").append(context.getFilesDir().getAbsolutePath()).append(":/android\" \\\n");
+        script.append("    -w /root \\\n");
+        script.append("    /bin/sh -l\n");
+
+        try (FileWriter fw = new FileWriter(launcherScript)) {
+            fw.write(script.toString());
+        }
+        launcherScript.setExecutable(true, false);
+
+        Log.i(TAG, "Created launcher script at: " + launcherScript.getAbsolutePath());
     }
 
     private void copyFile(File src, File dst) throws IOException {

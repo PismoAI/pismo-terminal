@@ -540,20 +540,23 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
         boolean setupComplete = linuxEnv.isSetupComplete();
         CrashLogger.log("isSetupComplete = " + setupComplete);
 
-        // STEP 1: Log proot command but still use Android shell
+        // Use launcher script if proot is set up, otherwise fallback to Android shell
+        String customShell = null;
         if (setupComplete) {
-            try {
-                String prootCmd = linuxEnv.getProotCommand();
-                CrashLogger.log("Proot command would be: " + prootCmd);
-                CrashLogger.log("But still using Android shell for now...");
-            } catch (Throwable t) {
-                CrashLogger.log("ERROR getting proot command:");
-                CrashLogger.logException(t);
+            String launcherScript = linuxEnv.getLauncherScript();
+            CrashLogger.log("Launcher script path: " + launcherScript);
+
+            java.io.File scriptFile = new java.io.File(launcherScript);
+            if (scriptFile.exists() && scriptFile.canExecute()) {
+                customShell = launcherScript;
+                CrashLogger.log("Using proot via launcher script");
+            } else {
+                CrashLogger.log("Launcher script not found or not executable, using Android shell");
             }
         }
 
-        CrashLogger.log("Creating ShellTermSession...");
-        session = new ShellTermSession(settings, initialCommand);
+        CrashLogger.log("Creating ShellTermSession with customShell=" + customShell);
+        session = new ShellTermSession(settings, customShell, initialCommand);
         CrashLogger.log("ShellTermSession created");
 
         // XXX We should really be able to fetch this from within TermSession
