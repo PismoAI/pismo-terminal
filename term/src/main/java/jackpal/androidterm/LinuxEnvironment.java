@@ -95,6 +95,22 @@ public class LinuxEnvironment {
         };
     }
 
+    /**
+     * Returns the proot command as a single string for use as shell parameter
+     */
+    public String getProotCommand() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(prootBinary.getAbsolutePath());
+        sb.append(" --link2symlink -0");
+        sb.append(" -r ").append(rootfsDir.getAbsolutePath());
+        sb.append(" -b /dev -b /proc -b /sys");
+        sb.append(" -b /sdcard:/sdcard");
+        sb.append(" -b ").append(context.getFilesDir().getAbsolutePath()).append(":/android");
+        sb.append(" -w /root");
+        sb.append(" /bin/sh -l");
+        return sb.toString();
+    }
+
     public String[] getEnvironment() {
         return new String[]{
             "HOME=/root", "USER=root", "TERM=xterm-256color", "LANG=C.UTF-8",

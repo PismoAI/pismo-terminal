@@ -50,10 +50,17 @@ public class ShellTermSession extends GenericTermSession {
         }
     };
 
+    private String mCustomShell;
+
     public ShellTermSession(TermSettings settings, String initialCommand) throws IOException {
+        this(settings, null, initialCommand);
+    }
+
+    public ShellTermSession(TermSettings settings, String customShell, String initialCommand) throws IOException {
         super(ParcelFileDescriptor.open(new File("/dev/ptmx"), ParcelFileDescriptor.MODE_READ_WRITE),
                 settings, false);
 
+        mCustomShell = customShell;
         initializeSession();
 
         setTermOut(new ParcelFileDescriptor.AutoCloseOutputStream(mTermFd));
@@ -98,7 +105,9 @@ public class ShellTermSession extends GenericTermSession {
         env[1] = "PATH=" + path;
         env[2] = "HOME=" + settings.getHomePath();
 
-        mProcId = createSubprocess(settings.getShell(), env);
+        // Use custom shell if provided, otherwise use settings
+        String shell = (mCustomShell != null) ? mCustomShell : settings.getShell();
+        mProcId = createSubprocess(shell, env);
     }
 
     private String checkPath(String path) {
