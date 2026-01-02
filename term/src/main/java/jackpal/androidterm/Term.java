@@ -540,26 +540,10 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
         boolean setupComplete = linuxEnv.isSetupComplete();
         CrashLogger.log("isSetupComplete = " + setupComplete);
 
-        if (setupComplete) {
-            try {
-                CrashLogger.log("Creating ProotTermSession...");
-                Log.i(TermDebug.LOG_TAG, "Linux environment ready, creating ProotTermSession");
-                session = new ProotTermSession(context, settings);
-                CrashLogger.log("ProotTermSession created successfully");
-            } catch (Throwable e) {
-                // If proot fails for any reason, fall back to regular shell
-                CrashLogger.log("ProotTermSession FAILED, falling back to ShellTermSession");
-                CrashLogger.logException(e);
-                Log.e(TermDebug.LOG_TAG, "ProotTermSession failed, falling back to ShellTermSession", e);
-                session = new ShellTermSession(settings, initialCommand);
-                CrashLogger.log("ShellTermSession created as fallback");
-            }
-        } else {
-            CrashLogger.log("Linux not ready, creating ShellTermSession...");
-            Log.i(TermDebug.LOG_TAG, "Linux environment not ready, using ShellTermSession");
-            session = new ShellTermSession(settings, initialCommand);
-            CrashLogger.log("ShellTermSession created");
-        }
+        // TEMPORARY: Always use ShellTermSession to test if base app works
+        CrashLogger.log("Creating ShellTermSession (proot disabled for testing)...");
+        session = new ShellTermSession(settings, initialCommand);
+        CrashLogger.log("ShellTermSession created");
 
         // XXX We should really be able to fetch this from within TermSession
         session.setProcessExitMessage(context.getString(R.string.process_exit_message));
