@@ -170,8 +170,12 @@ public class TermService extends Service implements TermSession.FinishCallback
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     .putExtra(RemoteInterface.PRIVEXTRA_TARGET_WINDOW, sessionHandle);
 
+            int pendingFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                pendingFlags |= PendingIntent.FLAG_IMMUTABLE;
+            }
             final PendingIntent result = PendingIntent.getActivity(getApplicationContext(), sessionHandle.hashCode(),
-                    switchIntent, 0);
+                    switchIntent, pendingFlags);
 
             final PackageManager pm = getPackageManager();
             final String[] pkgs = pm.getPackagesForUid(getCallingUid());
