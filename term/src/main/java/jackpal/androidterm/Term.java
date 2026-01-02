@@ -460,20 +460,28 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
                 }
             }
 
+            CrashLogger.log("Adding callback to sessions...");
             mTermSessions.addCallback(this);
 
+            CrashLogger.log("Creating emulator views for " + mTermSessions.size() + " sessions...");
             for (TermSession session : mTermSessions) {
+                CrashLogger.log("Creating emulator view...");
                 EmulatorView view = createEmulatorView(session);
+                CrashLogger.log("Adding view to flipper...");
                 mViewFlipper.addView(view);
+                CrashLogger.log("View added");
             }
 
+            CrashLogger.log("Updating prefs...");
             updatePrefs();
 
             if (onResumeSelectWindow >= 0) {
                 mViewFlipper.setDisplayedChild(onResumeSelectWindow);
                 onResumeSelectWindow = -1;
             }
+            CrashLogger.log("Calling mViewFlipper.onResume...");
             mViewFlipper.onResume();
+            CrashLogger.log("populateViewFlipper completed successfully");
         }
     }
 
