@@ -437,8 +437,10 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
             if (mTermSessions.size() == 0) {
                 try {
                     mTermSessions.add(createTermSession());
-                } catch (IOException e) {
-                    Toast.makeText(this, "Failed to start terminal session", Toast.LENGTH_LONG).show();
+                } catch (Throwable e) {
+                    // Catch Throwable to handle both Exceptions and Errors (like UnsatisfiedLinkError)
+                    Log.e(TermDebug.LOG_TAG, "Failed to create terminal session", e);
+                    Toast.makeText(this, "Failed to start terminal: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     finish();
                     return;
                 }
@@ -512,8 +514,16 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
         // Check if Linux environment is set up - use proot session if so
         LinuxEnvironment linuxEnv = new LinuxEnvironment(context);
         if (linuxEnv.isSetupComplete()) {
-            session = new ProotTermSession(context, settings);
+            try {
+                Log.i(TermDebug.LOG_TAG, "Linux environment ready, creating ProotTermSession");
+                session = new ProotTermSession(context, settings);
+            } catch (Throwable e) {
+                // If proot fails for any reason, fall back to regular shell
+                Log.e(TermDebug.LOG_TAG, "ProotTermSession failed, falling back to ShellTermSession", e);
+                session = new ShellTermSession(settings, initialCommand);
+            }
         } else {
+            Log.i(TermDebug.LOG_TAG, "Linux environment not ready, using ShellTermSession");
             session = new ShellTermSession(settings, initialCommand);
         }
 

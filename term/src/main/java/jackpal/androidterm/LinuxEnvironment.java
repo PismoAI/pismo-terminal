@@ -35,6 +35,54 @@ public class LinuxEnvironment {
         return new File(baseDir, ".setup_complete").exists() && rootfsDir.exists() && prootBinary.exists();
     }
 
+    /**
+     * Validates that the Linux environment is properly set up.
+     * @return null if valid, or an error message describing what's wrong.
+     */
+    public String validate() {
+        Log.i(TAG, "Validating Linux environment...");
+        Log.i(TAG, "Base dir: " + baseDir.getAbsolutePath() + " exists=" + baseDir.exists());
+        Log.i(TAG, "Rootfs dir: " + rootfsDir.getAbsolutePath() + " exists=" + rootfsDir.exists());
+        Log.i(TAG, "Proot binary: " + prootBinary.getAbsolutePath() + " exists=" + prootBinary.exists());
+
+        if (!baseDir.exists()) {
+            return "Base directory does not exist: " + baseDir.getAbsolutePath();
+        }
+        if (!rootfsDir.exists()) {
+            return "Rootfs directory does not exist: " + rootfsDir.getAbsolutePath();
+        }
+        if (!prootBinary.exists()) {
+            return "Proot binary does not exist: " + prootBinary.getAbsolutePath();
+        }
+        if (!prootBinary.canExecute()) {
+            // Try to make it executable
+            prootBinary.setExecutable(true, false);
+            if (!prootBinary.canExecute()) {
+                return "Proot binary is not executable: " + prootBinary.getAbsolutePath();
+            }
+        }
+
+        // Check for shell inside rootfs
+        File shell = new File(rootfsDir, "bin/sh");
+        Log.i(TAG, "Shell: " + shell.getAbsolutePath() + " exists=" + shell.exists());
+        if (!shell.exists()) {
+            // Try busybox as fallback
+            File busybox = new File(rootfsDir, "bin/busybox");
+            if (!busybox.exists()) {
+                return "No shell found in rootfs (neither /bin/sh nor /bin/busybox)";
+            }
+        }
+
+        // Check tmp directory
+        File tmpDir = new File(baseDir, "tmp");
+        if (!tmpDir.exists()) {
+            tmpDir.mkdirs();
+        }
+
+        Log.i(TAG, "Linux environment validation passed");
+        return null; // All good
+    }
+
     public String[] getShellCommand() {
         if (!isSetupComplete()) return new String[]{"/system/bin/sh"};
         return new String[]{
