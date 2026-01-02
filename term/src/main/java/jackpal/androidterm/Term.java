@@ -540,8 +540,19 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
         boolean setupComplete = linuxEnv.isSetupComplete();
         CrashLogger.log("isSetupComplete = " + setupComplete);
 
-        // TEMPORARY: Always use ShellTermSession to test if base app works
-        CrashLogger.log("Creating ShellTermSession (proot disabled for testing)...");
+        // STEP 1: Log proot command but still use Android shell
+        if (setupComplete) {
+            try {
+                String prootCmd = linuxEnv.getProotCommand();
+                CrashLogger.log("Proot command would be: " + prootCmd);
+                CrashLogger.log("But still using Android shell for now...");
+            } catch (Throwable t) {
+                CrashLogger.log("ERROR getting proot command:");
+                CrashLogger.logException(t);
+            }
+        }
+
+        CrashLogger.log("Creating ShellTermSession...");
         session = new ShellTermSession(settings, initialCommand);
         CrashLogger.log("ShellTermSession created");
 
