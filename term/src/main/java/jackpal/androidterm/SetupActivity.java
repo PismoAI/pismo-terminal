@@ -29,23 +29,36 @@ public class SetupActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        super.onCreate(savedInstanceState);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // Initialize crash logger FIRST
+        CrashLogger.init(this);
+        CrashLogger.log("SetupActivity.onCreate started");
 
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PismoTerminal:Setup");
-        wakeLock.acquire(30 * 60 * 1000L);
+        try {
+            requestWindowFeature(Window.FEATURE_NO_TITLE);
+            super.onCreate(savedInstanceState);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        handler = new Handler(Looper.getMainLooper());
-        linuxEnv = new LinuxEnvironment(this);
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PismoTerminal:Setup");
+            wakeLock.acquire(30 * 60 * 1000L);
 
-        if (linuxEnv.isSetupComplete()) {
-            launchTerminal();
-            return;
+            handler = new Handler(Looper.getMainLooper());
+            linuxEnv = new LinuxEnvironment(this);
+
+            CrashLogger.log("Checking if setup is complete...");
+            if (linuxEnv.isSetupComplete()) {
+                CrashLogger.log("Setup already complete, launching terminal");
+                launchTerminal();
+                return;
+            }
+            CrashLogger.log("Setup not complete, showing UI");
+            createUI();
+            startSetup();
+        } catch (Throwable t) {
+            CrashLogger.log("CRASH in SetupActivity.onCreate");
+            CrashLogger.logException(t);
+            throw t;
         }
-        createUI();
-        startSetup();
     }
 
     private void createUI() {
