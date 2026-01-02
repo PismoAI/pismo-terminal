@@ -1,5 +1,4 @@
-include ':emulatorview', ':libtermexec'
+rootProject.name = 'pismo-terminal'
 include ':term'
-include ':samples:intents'
-include ':samples:pathbroadcasts'
-include ':samples:telnet'
+include ':emulatorview'
+include ':libtermexec'

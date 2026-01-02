@@ -1,59 +1,47 @@
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:1.0.0'
-    }
-}
-apply plugin: 'com.android.library'
-
-repositories {
-    jcenter()
+plugins {
+    id 'com.android.library'
 }
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    namespace 'jackpal.androidterm.libtermexec'
+    compileSdk 34
 
     defaultConfig {
-        minSdkVersion 4
-        targetSdkVersion 22
-        versionCode 1
-        versionName "1.0"
+        minSdk 21
+        targetSdk 34
 
         ndk {
-            moduleName 'libjackpal-termexec2'
-            abiFilters 'all'
-            ldLibs 'log', 'c'
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-}
 
-// by default recent plugin version does not copy any AIDL files "to avoid publishing too much"
-android.libraryVariants.all { variant ->
-    Sync packageAidl = project.tasks.create("addPublic${variant.name.capitalize()}Aidl", Sync) { sync ->
-        from "$project.projectDir/src/main/aidl/"
-        into "$buildDir/intermediates/bundles/${variant.dirName}/aidl/"
+    buildFeatures {
+        aidl true
     }
 
-    variant.javaCompile.dependsOn packageAidl
+    externalNativeBuild {
+        ndkBuild {
+            path file('src/main/jni/Android.mk')
+        }
+    }
+
+    lint {
+        abortOnError false
+    }
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-
-    compile 'com.android.support:support-annotations:21.0.0'
+    implementation 'androidx.annotation:annotation:1.7.1'
 }

@@ -507,7 +507,16 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
     }
 
     protected static TermSession createTermSession(Context context, TermSettings settings, String initialCommand) throws IOException {
-        GenericTermSession session = new ShellTermSession(settings, initialCommand);
+        GenericTermSession session;
+
+        // Check if Linux environment is set up - use proot session if so
+        LinuxEnvironment linuxEnv = new LinuxEnvironment(context);
+        if (linuxEnv.isSetupComplete()) {
+            session = new ProotTermSession(context, settings);
+        } else {
+            session = new ShellTermSession(settings, initialCommand);
+        }
+
         // XXX We should really be able to fetch this from within TermSession
         session.setProcessExitMessage(context.getString(R.string.process_exit_message));
 
