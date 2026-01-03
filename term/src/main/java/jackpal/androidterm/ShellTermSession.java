@@ -138,6 +138,7 @@ public class ShellTermSession extends GenericTermSession {
     }
 
     private int createSubprocess(String shell, String[] env) throws IOException {
+        Log.i("PismoTerm", "createSubprocess called with shell: " + shell);
         ArrayList<String> argList = parse(shell);
         String arg0;
         String[] args;
@@ -145,6 +146,7 @@ public class ShellTermSession extends GenericTermSession {
         try {
             arg0 = argList.get(0);
             File file = new File(arg0);
+            Log.i("PismoTerm", "Checking shell file: " + arg0 + " exists=" + file.exists());
             if (!file.exists()) {
                 Log.e(TermDebug.LOG_TAG, "Shell " + arg0 + " not found!");
                 throw new FileNotFoundException(arg0);
@@ -152,13 +154,17 @@ public class ShellTermSession extends GenericTermSession {
                 Log.e(TermDebug.LOG_TAG, "Shell " + arg0 + " not executable!");
                 throw new FileNotFoundException(arg0);
             }
+            Log.i("PismoTerm", "Shell file OK, using: " + arg0);
             args = argList.toArray(new String[1]);
         } catch (Exception e) {
+            Log.w("PismoTerm", "Shell failed, falling back to failsafe: " + e.getMessage());
             argList = parse(mSettings.getFailsafeShell());
             arg0 = argList.get(0);
             args = argList.toArray(new String[1]);
+            Log.i("PismoTerm", "Using failsafe shell: " + arg0);
         }
 
+        Log.i("PismoTerm", "Calling TermExec.createSubprocess with: " + arg0);
         return TermExec.createSubprocess(mTermFd, arg0, args, env);
     }
 
