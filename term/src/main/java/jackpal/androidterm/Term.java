@@ -531,33 +531,38 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
     }
 
     protected static TermSession createTermSession(Context context, TermSettings settings, String initialCommand) throws IOException {
-        CrashLogger.log("createTermSession called");
+        Log.i("PismoTerm", "createTermSession called");
         GenericTermSession session;
 
         // Check if Linux environment is set up - use proot session if so
         LinuxEnvironment linuxEnv = new LinuxEnvironment(context);
-        CrashLogger.log("LinuxEnvironment created, checking isSetupComplete...");
+        Log.i("PismoTerm", "LinuxEnvironment created, checking isSetupComplete...");
         boolean setupComplete = linuxEnv.isSetupComplete();
-        CrashLogger.log("isSetupComplete = " + setupComplete);
+        Log.i("PismoTerm", "isSetupComplete = " + setupComplete);
+
+        // Also run validation to see detailed status
+        String validationError = linuxEnv.validate();
+        Log.i("PismoTerm", "Validation result: " + (validationError == null ? "OK" : validationError));
 
         // Use launcher script if proot is set up, otherwise fallback to Android shell
         String customShell = null;
         if (setupComplete) {
             String launcherScript = linuxEnv.getLauncherScript();
-            CrashLogger.log("Launcher script path: " + launcherScript);
+            Log.i("PismoTerm", "Launcher script path: " + launcherScript);
 
             java.io.File scriptFile = new java.io.File(launcherScript);
+            Log.i("PismoTerm", "Script exists: " + scriptFile.exists() + ", canExecute: " + scriptFile.canExecute());
             if (scriptFile.exists() && scriptFile.canExecute()) {
                 customShell = launcherScript;
-                CrashLogger.log("Using proot via launcher script");
+                Log.i("PismoTerm", "Using proot via launcher script");
             } else {
-                CrashLogger.log("Launcher script not found or not executable, using Android shell");
+                Log.w("PismoTerm", "Launcher script not found or not executable, using Android shell");
             }
         }
 
-        CrashLogger.log("Creating ShellTermSession with customShell=" + customShell);
+        Log.i("PismoTerm", "Creating ShellTermSession with customShell=" + customShell);
         session = new ShellTermSession(settings, customShell, initialCommand);
-        CrashLogger.log("ShellTermSession created");
+        Log.i("PismoTerm", "ShellTermSession created");
 
         // XXX We should really be able to fetch this from within TermSession
         session.setProcessExitMessage(context.getString(R.string.process_exit_message));
